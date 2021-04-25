@@ -1,9 +1,10 @@
 package io.github.benwillis.addressformatter
 
 import cats.syntax.either._
+import io.circe.Decoder.Result
 import io.circe.generic.auto._
 import io.circe.yaml.parser
-import io.circe.{Decoder, HCursor}
+import io.circe.{Decoder, HCursor, ParsingFailure}
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -31,18 +32,20 @@ class AddressFormatterTest extends AnyFunSpec with Matchers {
   describe("Address formatter") {
     val addressFormatter = new AddressFormatter
     testCaseCountries.foreach { countryCode =>
-      it(s"should format $countryCode addresses") {
-        val testCaseReader =
-          new InputStreamReader(getClass.getResourceAsStream(s"/countries/$countryCode.yaml"), "UTF8")
-        val countryTestCases = parser.parseDocuments(testCaseReader).toList.map(_.flatMap(_.as[TestCase]))
-        testCaseReader.close()
-        countryTestCases.foreach {
-          case Right(testCase) =>
-            withClue(testCase.description.getOrElse("")) {
-              addressFormatter.format(testCase.components) should equal(testCase.expected)
-            }
-          case Left(ex) => throw ex
-        }
+      val testCaseReader =
+        new InputStreamReader(getClass.getResourceAsStream(s"/countries/$countryCode.yaml"), "UTF8")
+      val countryTestCases = parser
+        .parseDocuments(testCaseReader)
+        .toList
+        .foldLeft[Either[ParsingFailure, List[TestCase]]](Right(List.empty[TestCase]))((acc, thing) => {
+          if (thing.isLeft) Left(thing.left.get) else acc.map(_ :+ thing.right.get.as[TestCase].right.get)
+        })
+      testCaseReader.close()
+      countryTestCases.right.get.zipWithIndex.foreach {
+        case (testCase, index) =>
+          it(s"${countryCode.toUpperCase} ${index + 1}. ${testCase.description.getOrElse("No Description")}") {
+            addressFormatter.format(testCase.components) should equal(testCase.expected)
+          }
       }
     }
   }
