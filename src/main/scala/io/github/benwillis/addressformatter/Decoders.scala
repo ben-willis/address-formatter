@@ -6,7 +6,7 @@ import io.circe.generic.semiauto.deriveDecoder
 import io.github.benwillis.addressformatter.Models.{State, Template}
 import cats.implicits._
 
-object Decoders {
+private[addressformatter] object Decoders {
   implicit val decodeTemplates: Decoder[Template] =
     deriveDecoder[Template] or Decoder.decodeString.map(str => Template(address_template = Some(str)))
 

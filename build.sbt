@@ -3,7 +3,7 @@ def isRelease: Boolean     = publishVersion != "local"
 
 name := "address-formatter"
 organization := "io.github.ben-willis"
-version := publishVersion + "-SNAPSHOT"
+version := publishVersion
 scalaVersion := "2.12.13"
 
 ThisBuild / scmInfo := Some(
@@ -28,8 +28,8 @@ credentials := Seq(
 ThisBuild / pomIncludeRepository := Function.const(false)
 ThisBuild / publishTo := {
   val nexus = "https://s01.oss.sonatype.org/"
-  if (false) Some("releases" at nexus + "service/local/staging/deploy/maven2")
-  else Some("snapshots" at nexus + "content/repositories/snapshots")
+  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 ThisBuild / publishMavenStyle := true
 

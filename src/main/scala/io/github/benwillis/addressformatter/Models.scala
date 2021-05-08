@@ -1,6 +1,6 @@
 package io.github.benwillis.addressformatter
 
-object Models {
+private[addressformatter] object Models {
   case class Component(
       name: String,
       aliases: Option[Seq[String]]

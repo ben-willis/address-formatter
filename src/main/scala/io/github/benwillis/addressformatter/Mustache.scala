@@ -6,13 +6,13 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, Awaitable}
 import scala.io.Source
 
-case class MustacheParseException(line: Int, msg: String)
+private[addressformatter] case class MustacheParseException(line: Int, msg: String)
     extends Exception("Line " + line + ": " + msg)
 
 /**
   * view helper trait
  **/
-trait MustacheHelperSupport {
+private[addressformatter] trait MustacheHelperSupport {
   private val contextLocal = new java.lang.ThreadLocal[Any]()
   private val renderLocal =
     new java.lang.ThreadLocal[Function1[String, String]]()
@@ -21,8 +21,7 @@ trait MustacheHelperSupport {
   protected def render(template: String): Any =
     (renderLocal.get())(template)
 
-  def withContextAndRenderFn[A](context: Any, render: (String) => String)(
-      fn: => A): A = {
+  def withContextAndRenderFn[A](context: Any, render: (String) => String)(fn: => A): A = {
     contextLocal.set(context)
     renderLocal.set(render)
     try { fn } finally {
@@ -35,7 +34,7 @@ trait MustacheHelperSupport {
 /**
   * template
  **/
-class Mustache(
+private[addressformatter] class Mustache(
     root: Token
 ) extends MustacheHelperSupport {
 
@@ -234,15 +233,8 @@ private abstract class Parser {
         ): List[Token] = s.headOption match {
           case None => fail("Closing unopened section \"" + name + "\"")
 
-          case Some(IncompleteSection(key, inverted, startOTag, startCTag))
-              if (key == name) =>
-            SectionToken(inverted,
-                         name,
-                         children,
-                         startOTag,
-                         startCTag,
-                         otag,
-                         ctag) :: s.tail
+          case Some(IncompleteSection(key, inverted, startOTag, startCTag)) if (key == name) =>
+            SectionToken(inverted, name, children, startOTag, startCTag, otag, ctag) :: s.tail
 
           case Some(IncompleteSection(key, inverted, _, _)) if (key != name) =>
             fail("Unclosed section \"" + key + "\"")
@@ -263,8 +255,7 @@ private abstract class Parser {
               otag = o; ctag = c
             }
             case _ =>
-              fail(
-                "Invalid change delimiter tag content: \"" + changeDelimiter + "\"")
+              fail("Invalid change delimiter tag content: \"" + changeDelimiter + "\"")
           }
         } else
           fail("Invalid change delimiter tag content: \"" + content + "\"")
@@ -296,9 +287,7 @@ case class StringProduct(str: String) extends TokenProduct {
 }
 
 trait Token {
-  def render(context: Any,
-             partials: Map[String, Mustache],
-             callstack: List[Any]): TokenProduct
+  def render(context: Any, partials: Map[String, Mustache], callstack: List[Any]): TokenProduct
   def templateSource: String
 }
 
@@ -309,9 +298,7 @@ trait CompositeToken {
                 callstack: List[Any]): TokenProduct =
     composite(tokens.map { (_, context) }, partials, callstack)
 
-  def composite(tasks: Seq[Tuple2[Token, Any]],
-                partials: Map[String, Mustache],
-                callstack: List[Any]): TokenProduct = {
+  def composite(tasks: Seq[Tuple2[Token, Any]], partials: Map[String, Mustache], callstack: List[Any]): TokenProduct = {
     val result = tasks.map(t => { t._1.render(t._2, partials, callstack) })
     val len    = result.foldLeft(0)({ _ + _.maxLength })
     new TokenProduct {
@@ -324,36 +311,25 @@ trait CompositeToken {
 case class RootToken(children: List[Token]) extends Token with CompositeToken {
   private val childrenSource = children.map(_.templateSource).mkString
 
-  def render(context: Any,
-             partials: Map[String, Mustache],
-             callstack: List[Any]): TokenProduct =
+  def render(context: Any, partials: Map[String, Mustache], callstack: List[Any]): TokenProduct =
     composite(children, context, partials, callstack)
 
   def templateSource: String = childrenSource
 }
 
-case class IncompleteSection(key: String,
-                             inverted: Boolean,
-                             otag: String,
-                             ctag: String)
-    extends Token {
-  def render(context: Any,
-             partials: Map[String, Mustache],
-             callstack: List[Any]): TokenProduct = fail
-  def templateSource: String                     = fail
+case class IncompleteSection(key: String, inverted: Boolean, otag: String, ctag: String) extends Token {
+  def render(context: Any, partials: Map[String, Mustache], callstack: List[Any]): TokenProduct = fail
+  def templateSource: String                                                                    = fail
 
   private def fail =
-    throw new Exception(
-      "Weird thing happened. There is incomplete section in compiled template.")
+    throw new Exception("Weird thing happened. There is incomplete section in compiled template.")
 
 }
 
 case class StaticTextToken(staticText: String) extends Token {
   private val product = StringProduct(staticText)
 
-  def render(context: Any,
-             partials: Map[String, Mustache],
-             callstack: List[Any]): TokenProduct = product
+  def render(context: Any, partials: Map[String, Mustache], callstack: List[Any]): TokenProduct = product
 
   def templateSource: String = staticText
 
@@ -367,24 +343,19 @@ case class ChangeDelimitersToken(
 ) extends Token {
   private val source = otag + "=" + newOTag + " " + newCTag + "=" + ctag
 
-  def render(context: Any,
-             partials: Map[String, Mustache],
-             callstack: List[Any]): TokenProduct = EmptyProduct
+  def render(context: Any, partials: Map[String, Mustache], callstack: List[Any]): TokenProduct = EmptyProduct
 
   def templateSource: String = source
 
 }
 
 case class PartialToken(key: String, otag: String, ctag: String) extends Token {
-  def render(context: Any,
-             partials: Map[String, Mustache],
-             callstack: List[Any]): TokenProduct =
+  def render(context: Any, partials: Map[String, Mustache], callstack: List[Any]): TokenProduct =
     partials.get(key) match {
       case Some(template) =>
         template.product(context, partials, template :: callstack)
       case _ =>
-        throw new IllegalArgumentException(
-          "Partial \"" + key + "\" is not defined.")
+        throw new IllegalArgumentException("Partial \"" + key + "\" is not defined.")
     }
   def templateSource: String = otag + ">" + key + ctag
 }
@@ -406,8 +377,7 @@ trait ContextHandler {
               partials: Map[String, Mustache],
               callstack: List[Any],
               childrenString: String,
-              render: (Any, Map[String, Mustache], List[Any]) => (
-                  String) => String): Any = {
+              render: (Any, Map[String, Mustache], List[Any]) => (String) => String): Any = {
     val r = render(context, partials, callstack)
 
     val wrappedEval =
@@ -545,9 +515,7 @@ case class SectionToken(
     new Mustache(root)
   }
 
-  def render(context: Any,
-             partials: Map[String, Mustache],
-             callstack: List[Any]): TokenProduct =
+  def render(context: Any, partials: Map[String, Mustache], callstack: List[Any]): TokenProduct =
     valueOf(key, context, partials, callstack, childrenSource, renderContent) match {
       case null =>
         if (inverted)
@@ -579,9 +547,8 @@ case class SectionToken(
         else EmptyProduct
     }
 
-  private def renderContent(context: Any,
-                            partials: Map[String, Mustache],
-                            callstack: List[Any])(template: String): String =
+  private def renderContent(context: Any, partials: Map[String, Mustache], callstack: List[Any])(
+      template: String): String =
     // it will be children nodes in most cases
     // TODO: some cache for dynamically generated templates?
     if (template == childrenSource)
@@ -600,11 +567,8 @@ case class UnescapedToken(key: String, otag: String, ctag: String)
     with ValuesFormatter {
   private val source = otag + "&" + key + ctag
 
-  def render(context: Any,
-             partials: Map[String, Mustache],
-             callstack: List[Any]): TokenProduct = {
-    val v = format(
-      valueOf(key, context, partials, callstack, "", defaultRender(otag, ctag)))
+  def render(context: Any, partials: Map[String, Mustache], callstack: List[Any]): TokenProduct = {
+    val v = format(valueOf(key, context, partials, callstack, "", defaultRender(otag, ctag)))
     new TokenProduct {
       val maxLength                       = v.length
       def write(out: StringBuilder): Unit = { out.append(v) }
@@ -620,11 +584,8 @@ case class EscapedToken(key: String, otag: String, ctag: String)
     with ValuesFormatter {
   private val source = otag + key + ctag
 
-  def render(context: Any,
-             partials: Map[String, Mustache],
-             callstack: List[Any]): TokenProduct = {
-    val v = format(
-      valueOf(key, context, partials, callstack, "", defaultRender(otag, ctag)))
+  def render(context: Any, partials: Map[String, Mustache], callstack: List[Any]): TokenProduct = {
+    val v = format(valueOf(key, context, partials, callstack, "", defaultRender(otag, ctag)))
     new TokenProduct {
       val maxLength = (v.length * 1.2).toInt
       def write(out: StringBuilder): Unit =

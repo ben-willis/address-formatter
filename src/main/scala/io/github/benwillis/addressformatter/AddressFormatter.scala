@@ -12,10 +12,10 @@ class AddressFormatter {
 
   import Decoders._
 
-  lazy val templates: Map[String, Template]  = decodeYaml[Map[String, Template]]("/countries/worldwide.yaml")
-  lazy val components: Seq[Component]        = decodeYamlDocuments[Component]("/components.yaml")
-  lazy val states: Map[String, Seq[State]]   = decodeYaml[Map[String, Seq[State]]]("/state_codes.yaml")
-  lazy val counties: Map[String, Seq[State]] = decodeYaml[Map[String, Seq[State]]]("/county_codes.yaml")
+  private lazy val templates: Map[String, Template]  = decodeYaml[Map[String, Template]]("/countries/worldwide.yaml")
+  private lazy val components: Seq[Component]        = decodeYamlDocuments[Component]("/components.yaml")
+  private lazy val states: Map[String, Seq[State]]   = decodeYaml[Map[String, Seq[State]]]("/state_codes.yaml")
+  private lazy val counties: Map[String, Seq[State]] = decodeYaml[Map[String, Seq[State]]]("/county_codes.yaml")
 
   private def decodeYaml[T: Decoder](path: String): T = {
     val fileReader = new InputStreamReader(getClass.getResourceAsStream(path), "UTF8")
@@ -37,7 +37,7 @@ class AddressFormatter {
     }
   }
 
-  type AddressMap = Map[String, String]
+  private type AddressMap = Map[String, String]
 
   def format(addressMap: AddressMap, countryCode: Option[String] = None): String = {
     val augmentedAddress = Seq[Map[String, String] => Map[String, String]](
@@ -63,7 +63,7 @@ class AddressFormatter {
     cleanAddress(addressWithReplacements)
   }
 
-  def determineCountryCode(addressMap: AddressMap): AddressMap = {
+  private def determineCountryCode(addressMap: AddressMap): AddressMap = {
     val template =
       addressMap.get("country_code").map(_.toUpperCase).flatMap(templates.get)
 
@@ -94,7 +94,7 @@ class AddressFormatter {
     addressMap ++ extraTerms ++ nlEdgeCasesExtraTerm
   }
 
-  def setAliases(addressMap: AddressMap): AddressMap =
+  private def setAliases(addressMap: AddressMap): AddressMap =
     components.foldLeft(addressMap) { (accAddress, component) =>
       {
         val aliasInAddress = component.aliases.getOrElse(Seq.empty) intersect addressMap.keys.toSeq
@@ -104,7 +104,7 @@ class AddressFormatter {
       }
     }
 
-  def sanityCleaning(addressMap: AddressMap): AddressMap = {
+  private def sanityCleaning(addressMap: AddressMap): AddressMap = {
     val postcode = (addr: AddressMap) => {
       val removePostcode = addressMap.get("postcode").exists { postcode =>
         postcode.length > 20 || postcode.matches("""\d+;\d+""")
@@ -131,7 +131,7 @@ class AddressFormatter {
     postcode.compose(numericCountry).compose(urlRemoval)(addressMap)
   }
 
-  def applyReplacements(addressMap: AddressMap): AddressMap = {
+  private def applyReplacements(addressMap: AddressMap): AddressMap = {
     val replacements = addressMap.get("country_code").flatMap(templates.get).flatMap(_.replace).getOrElse(Seq.empty)
 
     addressMap.map { component =>
@@ -145,7 +145,7 @@ class AddressFormatter {
     }
   }
 
-  def addCodes(addressMap: AddressMap): AddressMap = {
+  private def addCodes(addressMap: AddressMap): AddressMap = {
     val countryCode = addressMap.get("country_code").map(_.toUpperCase)
 
     val stateAndCityCodes = addressMap
@@ -175,14 +175,14 @@ class AddressFormatter {
     addressMap ++ stateAndCityCodes ++ countyCode
   }
 
-  def addAttention(addressMap: AddressMap): AddressMap = {
+  private def addAttention(addressMap: AddressMap): AddressMap = {
     val unknownComponents = addressMap.keys.filterNot(components.flatMap(_.possibleKeys).contains)
     val attention         = unknownComponents.flatMap(addressMap.get).mkString(", ")
 
     if (attention.nonEmpty) addressMap ++ Map("attention" -> attention) else addressMap
   }
 
-  def renderTemplate(addressMap: AddressMap): String = {
+  private def renderTemplate(addressMap: AddressMap): String = {
     val template = addressMap.get("country_code").collect(templates).getOrElse(templates("default"))
 
     val templateText =
@@ -195,18 +195,18 @@ class AddressFormatter {
     cleanAddress(mustache.render(addressMap + ("first" -> firstHelper _)))
   }
 
-  def hasMinimumAddressComponents(addressMap: AddressMap): Boolean =
+  private def hasMinimumAddressComponents(addressMap: AddressMap): Boolean =
     (addressMap.keySet intersect Set("road", "postcode")).nonEmpty
 
-  def firstHelper(str: String, render: String => String): String =
+  private def firstHelper(str: String, render: String => String): String =
     render(str).split(Pattern.quote("||")).map(_.trim).find(_.nonEmpty).getOrElse("")
 
-  def postFormatReplace(address: String, replacements: Seq[(String, String)]): String =
+  private def postFormatReplace(address: String, replacements: Seq[(String, String)]): String =
     replacements.foldLeft(address) {
       case (acc, (regex, replacement)) => acc.replaceAll(regex, replacement)
     }
 
-  def cleanAddress(addressString: String): String = {
+  private def cleanAddress(addressString: String): String = {
     val singleLineReplacements = Seq(
       """[\},\s]+$"""               -> "",
       """^[,\s]+"""                 -> "",
@@ -240,7 +240,7 @@ class AddressFormatter {
     removeDuplicates(addressWithReplacements) + "\n"
   }
 
-  def removeDuplicates(address: String): String = {
+  private def removeDuplicates(address: String): String = {
     address
       .split("\n")
       .map { line =>
