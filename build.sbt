@@ -12,6 +12,14 @@ ThisBuild / scmInfo := Some(
     "scm:git@github.com:ben-willis/address-formatter.git"
   )
 )
+ThisBuild / developers := List(
+  Developer(
+    id = "ben-willis",
+    name = "Ben Willis",
+    email = "benwillis0612@gmail.com",
+    url = url("https://ben-willis.co.uk")
+  )
+)
 
 ThisBuild / description := "Universal international address formatter in Scala."
 ThisBuild / licenses := List("MIT" -> new URL("https://github.com/ben-willis/address-formatter/blob/main/LICENSE"))

@@ -35,12 +35,8 @@ jobs:
         echo "email:       ${{ steps.import_gpg.outputs.email }}"
 
     - name: publish release
-      run: |
-        echo "RELEASE_VERSION: ${{ env.GITHUB_REF }}"
-
-#    - name: publish release
-#      run: sbt publishSigned
-#      env:
-#        RELEASE_VERSION: ${{ github.event.inputs.version }}
-#        OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-#        OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
+      run: sbt publishSigned
+      env:
+        RELEASE_VERSION: ${{ github.event.release.tag_name }}
+        OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+        OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
