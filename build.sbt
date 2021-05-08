@@ -20,16 +20,14 @@ ThisBuild / homepage := Some(url("https://github.com/ben-willis/address-formatte
 credentials := Seq(
   Credentials(
     "Sonatype Nexus Repository Manager",
-    "oss.sonatype.org",
+    "s01.oss.sonatype.org",
     sys.env.getOrElse("OSSRH_USERNAME", ""),
     sys.env.getOrElse("OSSRH_PASSWORD", "")
   ))
 
-ThisBuild / pomIncludeRepository := { _ =>
-  false
-}
+ThisBuild / pomIncludeRepository := Function.const(false)
 ThisBuild / publishTo := {
-  val nexus = "https://oss.sonatype.org/"
+  val nexus = "https://s01.oss.sonatype.org/"
   if (false) Some("releases" at nexus + "service/local/staging/deploy/maven2")
   else Some("snapshots" at nexus + "content/repositories/snapshots")
 }
