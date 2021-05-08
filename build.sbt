@@ -1,6 +1,12 @@
+def publishVersion: String = sys.env.getOrElse("RELEASE_VERSION", "local-SNAPSHOT")
+def isRelease: Boolean     = publishVersion != "local-SNAPSHOT"
+
+addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.7")
+addSbtPlugin("com.github.sbt" % "sbt-pgp"      % "2.1.2")
+
 name := "address-formatter"
 organization := "io.github.ben-willis"
-version := "0.1.0"
+version := publishVersion
 scalaVersion := "2.12.13"
 
 ThisBuild / scmInfo := Some(
@@ -19,8 +25,8 @@ ThisBuild / pomIncludeRepository := { _ =>
 }
 ThisBuild / publishTo := {
   val nexus = "https://oss.sonatype.org/"
-  if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  if (isRelease) Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  else Some("snapshots" at nexus + "content/repositories/snapshots")
 }
 ThisBuild / publishMavenStyle := true
 
