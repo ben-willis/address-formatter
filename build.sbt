@@ -1,12 +1,11 @@
-def publishVersion: String = sys.env.getOrElse("RELEASE_VERSION", "local-SNAPSHOT")
-def isRelease: Boolean     = publishVersion != "local-SNAPSHOT"
+def publishVersion: String = sys.env.getOrElse("RELEASE_VERSION", "local")
+def isRelease: Boolean     = publishVersion != "local"
 
-addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.7")
-addSbtPlugin("com.github.sbt" % "sbt-pgp"      % "2.1.2")
+addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")
 
 name := "address-formatter"
 organization := "io.github.ben-willis"
-version := publishVersion
+version := publishVersion + "-SNAPSHOT"
 scalaVersion := "2.12.13"
 
 ThisBuild / scmInfo := Some(
@@ -20,12 +19,20 @@ ThisBuild / description := "Universal international address formatter in Scala."
 ThisBuild / licenses := List("MIT" -> new URL("https://github.com/ben-willis/address-formatter/blob/main/LICENSE"))
 ThisBuild / homepage := Some(url("https://github.com/ben-willis/address-formatter"))
 
+credentials := Seq(
+  Credentials(
+    "Sonatype Nexus Repository Manager",
+    "oss.sonatype.org",
+    sys.env.getOrElse("OSSRH_USERNAME", ""),
+    sys.env.getOrElse("OSSRH_PASSWORD", "")
+  ))
+
 ThisBuild / pomIncludeRepository := { _ =>
   false
 }
 ThisBuild / publishTo := {
   val nexus = "https://oss.sonatype.org/"
-  if (isRelease) Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  if (false) Some("releases" at nexus + "service/local/staging/deploy/maven2")
   else Some("snapshots" at nexus + "content/repositories/snapshots")
 }
 ThisBuild / publishMavenStyle := true
