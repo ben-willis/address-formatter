@@ -1,8 +1,6 @@
 def publishVersion: String = sys.env.getOrElse("RELEASE_VERSION", "local")
 def isRelease: Boolean     = publishVersion != "local"
 
-addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")
-
 name := "address-formatter"
 organization := "io.github.ben-willis"
 version := publishVersion + "-SNAPSHOT"
