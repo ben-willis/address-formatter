@@ -37,9 +37,14 @@ class AddressFormatter {
     }
   }
 
-  private type AddressMap = Map[String, String]
-
-  def format(addressMap: AddressMap, countryCode: Option[String] = None): String = {
+  /**
+    * Composes fields from an address map as a formatted address
+    *
+    * @param address A map from address component name to value
+    * @param countryCode An optional country code to enforce a particulat format
+    * @return A formatted address string
+    */
+  def format(address: Map[String, String], countryCode: Option[String] = None): String = {
     val augmentedAddress = Seq[Map[String, String] => Map[String, String]](
       _ ++ countryCode.map("country_code" -> _),
       determineCountryCode,
@@ -48,7 +53,7 @@ class AddressFormatter {
       applyReplacements,
       addCodes,
       addAttention
-    ).reduce(_.andThen(_))(addressMap)
+    ).reduce(_.andThen(_))(address)
 
     val rawAddressString = renderTemplate(augmentedAddress)
 
@@ -63,7 +68,7 @@ class AddressFormatter {
     cleanAddress(addressWithReplacements)
   }
 
-  private def determineCountryCode(addressMap: AddressMap): AddressMap = {
+  private def determineCountryCode(addressMap: Map[String, String]): Map[String, String] = {
     val template =
       addressMap.get("country_code").map(_.toUpperCase).flatMap(templates.get)
 
@@ -94,7 +99,7 @@ class AddressFormatter {
     addressMap ++ extraTerms ++ nlEdgeCasesExtraTerm
   }
 
-  private def setAliases(addressMap: AddressMap): AddressMap =
+  private def setAliases(addressMap: Map[String, String]): Map[String, String] =
     components.foldLeft(addressMap) { (accAddress, component) =>
       {
         val aliasInAddress = component.aliases.getOrElse(Seq.empty) intersect addressMap.keys.toSeq
@@ -104,8 +109,8 @@ class AddressFormatter {
       }
     }
 
-  private def sanityCleaning(addressMap: AddressMap): AddressMap = {
-    val postcode = (addr: AddressMap) => {
+  private def sanityCleaning(addressMap: Map[String, String]): Map[String, String] = {
+    val postcode = (addr: Map[String, String]) => {
       val removePostcode = addressMap.get("postcode").exists { postcode =>
         postcode.length > 20 || postcode.matches("""\d+;\d+""")
       }
@@ -116,13 +121,13 @@ class AddressFormatter {
       else addr ++ updatedPostcode.map("postcode" -> _)
     }
 
-    val numericCountry = (addr: AddressMap) => {
+    val numericCountry = (addr: Map[String, String]) => {
       if (addressMap.get("country").exists(_.matches("""\d+""")))
         addr ++ addressMap.get("state").map("country" -> _) - "state"
       else addr
     }
 
-    val urlRemoval = (addr: AddressMap) => {
+    val urlRemoval = (addr: Map[String, String]) => {
       addr.filter(_._2.matches("https?://.*")).keys.foldLeft(addr) { (acc, component) =>
         acc - component
       }
@@ -131,7 +136,7 @@ class AddressFormatter {
     postcode.compose(numericCountry).compose(urlRemoval)(addressMap)
   }
 
-  private def applyReplacements(addressMap: AddressMap): AddressMap = {
+  private def applyReplacements(addressMap: Map[String, String]): Map[String, String] = {
     val replacements = addressMap.get("country_code").flatMap(templates.get).flatMap(_.replace).getOrElse(Seq.empty)
 
     addressMap.map { component =>
@@ -145,7 +150,7 @@ class AddressFormatter {
     }
   }
 
-  private def addCodes(addressMap: AddressMap): AddressMap = {
+  private def addCodes(addressMap: Map[String, String]): Map[String, String] = {
     val countryCode = addressMap.get("country_code").map(_.toUpperCase)
 
     val stateAndCityCodes = addressMap
@@ -175,14 +180,14 @@ class AddressFormatter {
     addressMap ++ stateAndCityCodes ++ countyCode
   }
 
-  private def addAttention(addressMap: AddressMap): AddressMap = {
+  private def addAttention(addressMap: Map[String, String]): Map[String, String] = {
     val unknownComponents = addressMap.keys.filterNot(components.flatMap(_.possibleKeys).contains)
     val attention         = unknownComponents.flatMap(addressMap.get).mkString(", ")
 
     if (attention.nonEmpty) addressMap ++ Map("attention" -> attention) else addressMap
   }
 
-  private def renderTemplate(addressMap: AddressMap): String = {
+  private def renderTemplate(addressMap: Map[String, String]): String = {
     val template = addressMap.get("country_code").collect(templates).getOrElse(templates("default"))
 
     val templateText =
@@ -195,7 +200,7 @@ class AddressFormatter {
     cleanAddress(mustache.render(addressMap + ("first" -> firstHelper _)))
   }
 
-  private def hasMinimumAddressComponents(addressMap: AddressMap): Boolean =
+  private def hasMinimumAddressComponents(addressMap: Map[String, String]): Boolean =
     (addressMap.keySet intersect Set("road", "postcode")).nonEmpty
 
   private def firstHelper(str: String, render: String => String): String =
