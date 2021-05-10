@@ -23,6 +23,7 @@ val address = Map(
   "house_number" -> "221b",
   "road" -> "Baker Street",
   "city" -> "London",
+  "postal_code" -> "NW1 6XE",
   "country_code" -> "gb"
 )
 
