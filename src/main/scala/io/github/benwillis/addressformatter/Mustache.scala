@@ -1,7 +1,6 @@
 package io.github.benwillis.addressformatter
 
 import scala.annotation.tailrec
-import scala.collection.MapLike
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Awaitable}
 import scala.io.Source
@@ -411,7 +410,7 @@ trait ContextHandler {
 
       case s: Seq[_] => s
 
-      case m: MapLike[_, _, _] => m
+      case m: Map[_, _] => m
 
       case f: Function1[String, _] =>
         eval(f(childrenString), childrenString, render)
@@ -429,7 +428,7 @@ trait ContextHandler {
       case Some(head) =>
         (head match {
           case null => None
-          case m: MapLike[String, _, _] =>
+          case m: Map[String, _] =>
             m.get(key) match {
               case Some(v) => v
               case None    => None

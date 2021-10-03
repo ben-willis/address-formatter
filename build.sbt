@@ -1,10 +1,15 @@
 def publishVersion: String = sys.env.getOrElse("RELEASE_VERSION", "local")
 def isRelease: Boolean     = publishVersion != "local"
 
+lazy val scala212 = "2.12.13"
+lazy val scala213 = "2.13.6"
+lazy val supportedScalaVersions = List(scala213, scala212)
+
 name := "address-formatter"
 organization := "io.github.ben-willis"
 version := publishVersion
-scalaVersion := "2.12.13"
+scalaVersion := scala212
+crossScalaVersions := supportedScalaVersions
 
 ThisBuild / scmInfo := Some(
   ScmInfo(
@@ -54,4 +59,10 @@ libraryDependencies ++= Seq(
 Compile / unmanagedResourceDirectories += baseDirectory.value / "address-formatting/conf"
 Test / unmanagedResourceDirectories += baseDirectory.value / "address-formatting/testcases"
 
-scalacOptions += "-Ypartial-unification"
+scalacOptions ++= {
+  if (scalaVersion.value == scala212) {
+    List("-Ypartial-unification")
+  } else {
+    List.empty
+  }
+}
