@@ -13,7 +13,7 @@ The formatting specification for the whole world is part of the distribution pac
 ## Installation and Usage
 
 ```sbt
-libraryDependencies += "io.github.ben-willis" %% "address_formatter" % "1.0.0"
+libraryDependencies += "io.github.ben-willis" %% "address-formatter" % "1.0.0"
 ```
 
 ```scala
